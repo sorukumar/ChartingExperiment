@@ -50,6 +50,20 @@
     <div class="header" style="text-align: center; font-size: 24px;">Countries Where BTC Has Hit ATH</div>
     <div id="map"></div>
     <script>
+        // Define getColor function in the global scope
+        function getColor(percentageFromAth) {
+            if (percentageFromAth === undefined || percentageFromAth === null || isNaN(percentageFromAth)) {
+                return '#808080'; // Grey color for no value or invalid value
+            }
+            return percentageFromAth > 20 ? '#32cd32' :
+                percentageFromAth > 0 ? '#90ee90' :
+                percentageFromAth > -10 ? '#ff4500' :
+                percentageFromAth > -20 ? '#ff8c00' :
+                percentageFromAth > -30 ? '#ffa500' :
+                percentageFromAth > -40 ? '#ffd700' :
+                '#ffffe0';
+        }
+
         function fetchCsvData(url) {
             return d3.csv(url)
                 .then(data => {
@@ -81,19 +95,7 @@
                 attribution: '&copy; OpenStreetMap contributors'
             }).addTo(map);
 
-            function getColor(percentageFromAth) {
-                if (percentageFromAth === undefined || percentageFromAth === null || isNaN(percentageFromAth)) {
-                    return '#808080'; // Grey color for no value or invalid value
-                }
-                return percentageFromAth > 20 ? '#32cd32' :
-                       percentageFromAth > 0 ? '#90ee90' :
-                       percentageFromAth > -10 ? '#ff4500' :
-                       percentageFromAth > -20 ? '#ff8c00' :
-                       percentageFromAth > -30 ? '#ffa500' :
-                       percentageFromAth > -40 ? '#ffd700' :
-                                                 '#ffffe0';
-            }
-
+            // Define style function here (or use it directly in the geoJson options)
             function style(feature) {
                 const countryCode = feature.properties.adm0_a3;
                 const countryInfo = countryData[countryCode];
@@ -108,49 +110,19 @@
                 };
             }
 
-            function onEachFeature(feature, layer) {
-                const countryCode = feature.properties.adm0_a3;
-                const countryInfo = countryData[countryCode];
-                const tooltipText = countryInfo ?
-                    `${feature.properties.admin}: BTC Price: ${countryInfo.btcPrice}, BTC ATH: ${countryInfo.btcAth}, Change: ${countryInfo.percentageFromAth.toFixed(0)}%` :
-                    `${feature.properties.admin}: No data`;
-                layer.bindTooltip(tooltipText, {
-                    permanent: false,
-                    direction: 'auto',
-                    sticky: true
-                });
-            }
-
-            function highlightFeature(e) {
-                var layer = e.target;
-                layer.setStyle({
-                    weight: 5,
-                    color: '#666',
-                    dashArray: '',
-                    fillOpacity: 0.7
-                });
-                if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
-                    layer.bringToFront();
-                }
-            }
-
-            function resetHighlight(e) {
-                geojson.resetStyle(e.target);
-            }
-
-            geojson = L.geoJson(null, {
-                style: style,
-                onEachFeature: onEachFeature
-            });
+            var geojson = L.geoJson(null, {
+                style: style
+                // Define other geoJson options here
+            }).addTo(map);
 
             fetch('https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_110m_admin_0_countries.geojson')
                 .then(response => response.json())
                 .then(data => {
-                    geojson.addData(data).addTo(map);
+                    geojson.addData(data);
                 });
 
             // Legend
-            var legend = L.control({position: 'top'});
+            var legend = L.control({position: 'topright'});
             legend.onAdd = function (map) {
                 var div = L.DomUtil.create('div', 'info legend'),
                     grades = [-40, -30, -20, -10, 0, 20],
