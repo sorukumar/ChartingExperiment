@@ -102,7 +102,7 @@
                 const countryCode = feature.properties.adm0_a3;
                 const countryInfo = countryData[countryCode];
                 const tooltipText = countryInfo ?
-                    `${feature.properties.admin}: BTC Price - ${countryInfo.btcPrice}, BTC ATH - ${countryInfo.btcAth}, Change - ${countryInfo.percentageFromAth.toFixed(2)}%` :
+                    `${feature.properties.admin}: BTC Price: ${countryInfo.btcPrice}, BTC ATH: ${countryInfo.btcAth}, Change: ${countryInfo.percentageFromAth.toFixed(0)}%` :
                     `${feature.properties.admin}: No data`;
                 layer.bindTooltip(tooltipText, {
                     permanent: false,
