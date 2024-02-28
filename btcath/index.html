@@ -70,11 +70,27 @@
                 '#ffffe0';
         }
 
-        function onEachFeature(feature, layer) {
-            if (feature.properties) {
-                layer.bindTooltip(`${feature.properties.admin}: No data`, {sticky: true});
-            }
+       function onEachFeature(feature, layer) {
+    // Check if the feature (country) has properties
+    if (feature.properties) {
+        const countryCode = feature.properties.adm0_a3; // Assuming 'adm0_a3' is the country code in your GeoJSON
+        const countryInfo = countryData[countryCode]; // Retrieve country-specific data
+
+        // Check if there's data for the country and construct tooltip content accordingly
+        if (countryInfo) {
+            const tooltipContent = `
+                <strong>${feature.properties.admin}</strong><br>
+                BTC Price: ${countryInfo.btcPrice.toLocaleString()}<br>
+                BTC ATH: ${countryInfo.btcAth.toLocaleString()}<br>
+                Change: ${countryInfo.percentageFromAth.toFixed(0)}%
+            `;
+            layer.bindTooltip(tooltipContent, {sticky: true});
+        } else {
+            layer.bindTooltip(`${feature.properties.admin}: No data`, {sticky: true});
         }
+    }
+}
+
 
         function fetchCsvData(url) {
             return d3.csv(url)
