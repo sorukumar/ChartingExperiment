@@ -8,7 +8,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/v/bs5/jq-3.7.0/dt-2.0.0/datatables.min.css" rel="stylesheet">
-    
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script src="https://d3js.org/d3.v6.min.js"></script>
@@ -18,69 +17,77 @@
             height: 800px; /* Adjusted for less space on Antarctica */
             width: 100%;
         }
+        .legend {
+            background-color: #fff;
+            padding: 10px;
+            font-size: 14px;
+            font-family: Arial, sans-serif;
+        }
+        .info {
+            padding: 6px 8px;
+            background: white;
+            background: rgba(255,255,255,0.8);
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            border-radius: 5px;
+        }
+        .info h4 {
+            margin: 0 0 5px;
+            color: #777;
+        }
     </style>
 </head>
 <body>
     <div class="header">Countries Where BTC Has Hit ATH</div>
-
     <div id="map"></div>
     <script>
         function fetchCsvData(url) {
-             return d3.csv(url)
+            return d3.csv(url)
                 .then(data => {
                     const formattedData = {};
-            
-            data.forEach(row => {
-                const countryCode = row["Country Code"];
-                const btcPrice = parseFloat(row["BTC Price"]);
-                const btcAth = parseFloat(row["BTC ATH"]);
-                const percentageFromAth = ((btcPrice / btcAth) - 1) * 100;
-                formattedData[countryCode] = {
-                    percentageFromAth: percentageFromAth,
-                    btcPrice: btcPrice,
-                    btcAth: btcAth
-                };
-            });
-            return formattedData;
-        });
-}
-
+                    data.forEach(row => {
+                        const countryCode = row["Country Code"];
+                        const btcPrice = parseFloat(row["BTC Price"]);
+                        const btcAth = parseFloat(row["BTC ATH"]);
+                        const percentageFromAth = ((btcPrice / btcAth) - 1) * 100;
+                        formattedData[countryCode] = {
+                            percentageFromAth: percentageFromAth,
+                            btcPrice: btcPrice,
+                            btcAth: btcAth
+                        };
+                    });
+                    return formattedData;
+                });
+        }
 
         const csvUrl = 'https://raw.githubusercontent.com/sorukumar/ChartingExperiment/main/btcath/btcprice.csv';
-
         fetchCsvData(csvUrl).then(countryData => {
             const map = L.map('map', {
                 center: [20, 0],
                 zoom: 2,
-                maxBounds: [[-60, -180], [85, 180]], // Adjusted bounds
+                maxBounds: [[-60, -180], [85, 180]],
                 maxBoundsViscosity: 1.0,
             });
-
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; OpenStreetMap contributors'
             }).addTo(map);
 
             function getColor(percentageFromAth) {
-                // Check if percentageFromAth is undefined, null, or not a number (NaN)
                 if (percentageFromAth === undefined || percentageFromAth === null || isNaN(percentageFromAth)) {
                     return '#808080'; // Grey color for no value or invalid value
-                    }
-                // Proceed with the existing logic for valid percentageFromAth values
-                    return percentageFromAth > 20 ? '#32cd32' : // Green, significantly above ATH
-                            percentageFromAth > 0 ? '#90ee90' : // Light green, slightly above ATH
-                            percentageFromAth > -10 ? '#ff4500' : // OrangeRed, slightly below ATH
-                            percentageFromAth > -20 ? '#ff8c00' : // DarkOrange, moderately below ATH
-                            percentageFromAth > -30 ? '#ffa500' : // Orange, significantly below ATH
-                            percentageFromAth > -40 ? '#ffd700' : // Gold, far below ATH
-                             '#ffffe0'; // LightYellow, very far from ATH
-}
-
-
-            var geojson; // Define geojson globally
+                }
+                return percentageFromAth > 20 ? '#32cd32' :
+                       percentageFromAth > 0 ? '#90ee90' :
+                       percentageFromAth > -10 ? '#ff4500' :
+                       percentageFromAth > -20 ? '#ff8c00' :
+                       percentageFromAth > -30 ? '#ffa500' :
+                       percentageFromAth > -40 ? '#ffd700' :
+                                                 '#ffffe0';
+            }
 
             function style(feature) {
                 const countryCode = feature.properties.adm0_a3;
-                const value = countryData[countryCode] || 0; // Default to 0 if no data
+                const countryInfo = countryData[countryCode];
+                const value = countryInfo ? countryInfo.percentageFromAth : undefined;
                 return {
                     fillColor: getColor(value),
                     weight: 2,
@@ -92,22 +99,17 @@
             }
 
             function onEachFeature(feature, layer) {
-    layer.on({
-        mouseover: highlightFeature,
-        mouseout: resetHighlight
-    });
-    const countryCode = feature.properties.adm0_a3;
-    const countryInfo = countryData[countryCode];
-    const tooltipText = countryInfo ?
-        `${feature.properties.admin}: BTC Price - ${countryInfo.btcPrice}, BTC ATH - ${countryInfo.btcAth}, Change - ${countryInfo.percentageFromAth.toFixed(2)}%` :
-        `${feature.properties.admin}: No data`;
-    layer.bindTooltip(tooltipText, {
-        permanent: false, 
-        direction: 'auto',
-        sticky: true
-    });
-}
-
+                const countryCode = feature.properties.adm0_a3;
+                const countryInfo = countryData[countryCode];
+                const tooltipText = countryInfo ?
+                    `${feature.properties.admin}: BTC Price - ${countryInfo.btcPrice}, BTC ATH - ${countryInfo.btcAth}, Change - ${countryInfo.percentageFromAth.toFixed(2)}%` :
+                    `${feature.properties.admin}: No data`;
+                layer.bindTooltip(tooltipText, {
+                    permanent: false,
+                    direction: 'auto',
+                    sticky: true
+                });
+            }
 
             function highlightFeature(e) {
                 var layer = e.target;
@@ -126,7 +128,6 @@
                 geojson.resetStyle(e.target);
             }
 
-            // Adjusted to correctly define `geojson` within this scope
             geojson = L.geoJson(null, {
                 style: style,
                 onEachFeature: onEachFeature
@@ -137,6 +138,25 @@
                 .then(data => {
                     geojson.addData(data).addTo(map);
                 });
+
+            // Legend
+            var legend = L.control({position: 'bottomright'});
+            legend.onAdd = function (map) {
+                var div = L.DomUtil.create('div', 'info legend'),
+                    grades = [-40, -30, -20, -10, 0, 20],
+                    labels = [],
+                    from, to;
+                for (var i = 0; i < grades.length; i++) {
+                    from = grades[i];
+                    to = grades[i + 1];
+                    labels.push(
+                        '<i style="background:' + getColor(from + 1) + '"></i> ' +
+                        from + (to ? '&ndash;' + to : '+'));
+                }
+                div.innerHTML = labels.join('<br>');
+                return div;
+            };
+            legend.addTo(map);
         });
     </script>
 </body>
