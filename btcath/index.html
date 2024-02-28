@@ -57,12 +57,20 @@
             }).addTo(map);
 
             function getColor(percentageFromAth) {
-                return percentageFromAth > -10 ? '#ff4500' :
-                       percentageFromAth > -20 ? '#ff8c00' :
-                       percentageFromAth > -30 ? '#ffa500' :
-                       percentageFromAth > -40 ? '#ffd700' :
-                                                 '#ffffe0'; // Lighter color for far from ATH
-            }
+                // Check if percentageFromAth is undefined, null, or not a number (NaN)
+                if (percentageFromAth === undefined || percentageFromAth === null || isNaN(percentageFromAth)) {
+                    return '#808080'; // Grey color for no value or invalid value
+                    }
+                // Proceed with the existing logic for valid percentageFromAth values
+                    return percentageFromAth > 20 ? '#32cd32' : // Green, significantly above ATH
+                            percentageFromAth > 0 ? '#90ee90' : // Light green, slightly above ATH
+                            percentageFromAth > -10 ? '#ff4500' : // OrangeRed, slightly below ATH
+                            percentageFromAth > -20 ? '#ff8c00' : // DarkOrange, moderately below ATH
+                            percentageFromAth > -30 ? '#ffa500' : // Orange, significantly below ATH
+                            percentageFromAth > -40 ? '#ffd700' : // Gold, far below ATH
+                             '#ffffe0'; // LightYellow, very far from ATH
+}
+
 
             var geojson; // Define geojson globally
 
