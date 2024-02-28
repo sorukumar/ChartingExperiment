@@ -39,7 +39,7 @@
             const map = L.map('map', {
                 center: [20, 0],
                 zoom: 2,
-                maxBounds: [[-90, -180], [90, 180]],
+                maxBounds: [[-90, -180], [85, 180]],
                 maxBoundsViscosity: 1.0,
             });
 
@@ -48,10 +48,10 @@
             }).addTo(map);
 
             function getColor(percentageFromAth) {
-                return percentageFromAth > -10 ? '#FEB24C' :
-                       percentageFromAth > -20 ? '#FD8D3C' :
-                       percentageFromAth > -30 ? '#FC4E2A' :
-                       percentageFromAth > -40 ? '#E31A1C' :
+                return percentageFromAth > -10 ? '#ff4500' :
+                       percentageFromAth > -20 ? '#ff8c00' :
+                       percentageFromAth > -30 ? '#ffa500' :
+                       percentageFromAth > -40 ? '#ffd700' :
                                                  '#800026';
             }
 
@@ -68,6 +68,19 @@
                 };
             }
 
+                    function onEachFeature(feature, layer) {
+            layer.on({
+                mouseover: highlightFeature,
+                mouseout: resetHighlight
+            });
+            // Bind tooltip here
+            layer.bindTooltip(`${feature.properties.admin}: ${feature.properties.adm0_a3}`, {
+                permanent: false, 
+                direction: 'auto',
+                sticky: true // Make tooltip follow the cursor
+            });
+        }
+            
             function highlightFeature(e) {
                 var layer = e.target;
 
@@ -92,14 +105,7 @@
                 .then(data => {
                     L.geoJson(data, {
                         style: style,
-                        onEachFeature: function (feature, layer) {
-                            layer.on({
-                                mouseover: highlightFeature,
-                                mouseout: resetHighlight
-                            });
-                            const countryCode = feature.properties.adm0_a3;
-                            const tooltipText = `${feature.properties.admin}: ${countryData[countryCode] ? countryData[countryCode].toFixed(2) + '%' : 'No data'}`;
-                            layer.bindTooltip(tooltipText, {permanent: false, direction: 'auto'});
+                        onEachFeature: onEachFeature
                         }
                     }).addTo(map);
                 });
