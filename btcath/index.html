@@ -37,7 +37,7 @@
     </style>
 </head>
 <body>
-    <div class="header">Countries Where BTC Has Hit ATH</div>
+    <div class="header" style="text-align: center; font-size: 24px;">Countries Where BTC Has Hit ATH</div>
     <div id="map"></div>
     <script>
         function fetchCsvData(url) {
@@ -140,7 +140,7 @@
                 });
 
             // Legend
-            var legend = L.control({position: 'bottomright'});
+            var legend = L.control({position: 'top'});
             legend.onAdd = function (map) {
                 var div = L.DomUtil.create('div', 'info legend'),
                     grades = [-40, -30, -20, -10, 0, 20],
