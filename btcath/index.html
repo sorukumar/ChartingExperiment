@@ -8,7 +8,7 @@
     <script src="https://d3js.org/d3-fetch.v1.min.js"></script>
     <style>
         #map {
-            height: 800px; /* Adjusted for less space on Antarctica */
+            height: 1000px; /* Adjusted for less space on Antarctica */
             width: 100%;
         }
     </style>
@@ -38,7 +38,7 @@
             const map = L.map('map', {
                 center: [20, 0],
                 zoom: 2,
-                maxBounds: [[-60, -200], [85, 200]], // Adjusted bounds
+                maxBounds: [[-60, -180], [85, 180]], // Adjusted bounds
                 maxBoundsViscosity: 1.0,
             });
 
