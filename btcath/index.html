@@ -1,19 +1,20 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Interactive Choropleth World Map</title>
+    <title>BTC ATH World Map</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script src="https://d3js.org/d3.v6.min.js"></script>
     <script src="https://unpkg.com/leaflet-choropleth"></script>
     <style>
         #map {
-            height: 600px;
+            height: 1000px;
             width: 100%;
         }
     </style>
 </head>
 <body>
+    <div class="header">Countries Where BTC Has Hit ATH</div>
     <div id="map"></div>
     <script>
         // Sample data: Country codes and values
@@ -40,8 +41,13 @@
             "NOR": 200
         };
 
-        // Initialize the map
-        const map = L.map('map').setView([20, 0], 2);
+        // Initialize the map with a more "globe-like" initial view
+        const map = L.map('map', {
+            center: [20, 0],
+            zoom: 2,
+            maxBounds: [[-90, -180], [90, 180]], // Restrict map to world bounds to prevent infinite scrolling
+            maxBoundsViscosity: 1.0, // Make the map bound limits "sticky"
+        });
 
         // Add OpenStreetMap tiles
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -51,19 +57,19 @@
         // Function to set the color based on the value
         function getColor(value) {
             return value > 180 ? '#800026' :
-                value > 160 ? '#BD0026' :
-                value > 140 ? '#E31A1C' :
-                value > 120 ? '#FC4E2A' :
-                value > 100 ? '#FD8D3C' :
-                value > 80  ? '#FEB24C' :
-                value > 60  ? '#FED976' :
-                              '#FFEDA0';
+                   value > 160 ? '#BD0026' :
+                   value > 140 ? '#E31A1C' :
+                   value > 120 ? '#FC4E2A' :
+                   value > 100 ? '#FD8D3C' :
+                   value > 80  ? '#FEB24C' :
+                   value > 60  ? '#FED976' :
+                                 '#FFEDA0';
         }
 
         // Function to style each feature
         function style(feature) {
             return {
-                fillColor: getColor(countryData[feature.properties.ISO_A3] || 0),
+                fillColor: getColor(countryData[feature.properties.adm0_a3] || 0),
                 weight: 2,
                 opacity: 1,
                 color: 'white',
@@ -72,13 +78,42 @@
             };
         }
 
-        // Add GeoJSON layer
-        fetch('https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_50m_admin_0_countries.geojson')
+        // Function to handle mouseover event
+        function highlightFeature(e) {
+            var layer = e.target;
+
+            layer.setStyle({
+                weight: 5,
+                color: '#666',
+                dashArray: '',
+                fillOpacity: 0.7
+            });
+
+            if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+                layer.bringToFront();
+            }
+        }
+
+        // Function to reset highlight
+        function resetHighlight(e) {
+            geojson.resetStyle(e.target);
+        }
+
+        // Fetch and add GeoJSON layer
+        fetch('https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_110m_admin_0_countries.geojson')
             .then(response => response.json())
             .then(data => {
-                L.geoJson(data, {style: style}).addTo(map);
-            })
-            .catch(error => console.error('Error loading the GeoJSON data:', error));
+                geojson = L.geoJson(data, {
+                    style: style,
+                    onEachFeature: function (feature, layer) {
+                        layer.on({
+                            mouseover: highlightFeature,
+                            mouseout: resetHighlight
+                        });
+                        layer.bindTooltip(`${feature.properties.admin}: ${countryData[feature.properties.adm0_a3] || 'No data'}`, {permanent: false, direction: 'auto'});
+                    }
+                }).addTo(map);
+            });
     </script>
 </body>
 </html>
