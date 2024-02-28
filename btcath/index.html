@@ -15,22 +15,21 @@
 </head>
 <body>
     <div class="header">Countries Where BTC Has Hit ATH</div>
-    <div id="athCounter">Loading ATH counter...</div>
+
     <div id="map"></div>
     <script>
         function fetchCsvData(url) {
             return d3.csv(url)
                 .then(data => {
                     const formattedData = {};
-                    let athRetouchedCount = 0;
+                    
                     data.forEach(row => {
                         const countryCode = row["Country Code"];
                         const btcPrice = parseFloat(row["BTC Price"]);
                         const btcAth = parseFloat(row["BTC ATH"]);
                         const percentageFromAth = ((btcPrice / btcAth) - 1) * 100;
                         formattedData[countryCode] = percentageFromAth;
-                        if(row["Retouched_YN"] === 1) { // Check if the country has retouched ATH
-                            athRetouchedCount += 1;
+
                     });
                     return formattedData;
                 });
