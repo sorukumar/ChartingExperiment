@@ -1,20 +1,17 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="utf-8">
+    <meta charset="UTF-8">
     <title>BTC ATH World Map</title>
     <meta name="author" content="sorukumar">
     <meta name="description" content="Making Bitcoin Beautiful One Chart a Time.">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/v/bs5/jq-3.7.0/dt-2.0.0/datatables.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-    <script src="https://d3js.org/d3.v6.min.js"></script>
-    <script src="https://d3js.org/d3-fetch.v1.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"/>
     <style>
         #map {
-            height: 900px; 
+            height: 900px;
             width: 100%;
         }
         .legend {
@@ -37,128 +34,118 @@
             box-shadow: 0 0 15px rgba(0,0,0,0.2);
             border-radius: 5px;
         }
-        .info h4 {
-            margin: 0 0 5px;
-            color: #777;
-        }
     </style>
 </head>
 <body>
- <nav class="navbar bg-body-tertiary">
+<nav class="navbar bg-body-tertiary">
     <div class="container">
-      <h1 class="navbar-brand mb-0">
-        <img src="https://avatars.githubusercontent.com/u/113713822?s=200" alt="Logo" width="24" height="24" class="d-inline-block align-text-top">
-        Bitcoin is Beautiful
-      </h1>
-      <a class="nav-link" href="https://github.com/sorukumar/ChartingExperiment/btcath">Github</a>
+        <h1 class="navbar-brand mb-0">
+            <img src="https://avatars.githubusercontent.com/u/113713822?s=200" alt="Logo" width="24" height="24"
+                 class="d-inline-block align-text-top">
+            Bitcoin is Beautiful
+        </h1>
+        <a class="nav-link" href="https://github.com/sorukumar/ChartingExperiment/btcath">Github</a>
     </div>
-  </nav>
-    
-    <div class="header" style="text-align: center; font-size: 24px;">Countries Where BTC Has Hit ATH</div>
-    <div id="map"></div>
-    <script>
-        function getColor(percentageFromAth) {
-            if (percentageFromAth === undefined || percentageFromAth === null || isNaN(percentageFromAth)) {
-                return '#808080'; // Grey color for no value or invalid value
-            }
-            return percentageFromAth > 20 ? '#32cd32' :
-                percentageFromAth > 0 ? '#90ee90' :
-                percentageFromAth > -10 ? '#ff4500' :
-                percentageFromAth > -20 ? '#ff8c00' :
-                percentageFromAth > -30 ? '#ffa500' :
-                percentageFromAth > -40 ? '#ffd700' :
-                '#ffffe0';
+</nav>
+
+<div class="header" style="text-align: center; font-size: 24px;">Countries Where BTC Has Hit ATH</div>
+<div id="map"></div>
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+<script src="https://d3js.org/d3.v6.min.js"></script>
+<script src="https://d3js.org/d3-fetch.v1.min.js"></script>
+<script>
+    function getColor(percentageFromAth) {
+        if (percentageFromAth === undefined || percentageFromAth === null || isNaN(percentageFromAth)) {
+            return '#808080'; // Grey color for no value or invalid value
         }
+        return percentageFromAth > 20 ? '#32cd32' :
+            percentageFromAth > 0 ? '#90ee90' :
+            percentageFromAth > -10 ? '#ff4500' :
+            percentageFromAth > -20 ? '#ff8c00' :
+            percentageFromAth > -30 ? '#ffa500' :
+            percentageFromAth > -40 ? '#ffd700' :
+            '#ffffe0';
+    }
 
-       function onEachFeature(feature, layer) {
-    // Check if the feature (country) has properties
-    if (feature.properties) {
-        const countryCode = feature.properties.adm0_a3; // Assuming 'adm0_a3' is the country code in your GeoJSON
-        const countryInfo = countryData[countryCode]; // Retrieve country-specific data
-
-        // Check if there's data for the country and construct tooltip content accordingly
+    function onEachFeature(feature, layer) {
+        const countryCode = feature.properties.adm0_a3;
+        const countryInfo = countryData[countryCode];
         if (countryInfo) {
-            const tooltipContent = `
-                <strong>${feature.properties.admin}</strong><br>
+            const tooltipContent = `<strong>${feature.properties.admin}</strong><br>
                 BTC Price: ${countryInfo.btcPrice.toLocaleString()}<br>
                 BTC ATH: ${countryInfo.btcAth.toLocaleString()}<br>
-                Change: ${countryInfo.percentageFromAth.toFixed(0)}%
-            `;
+                Change: ${countryInfo.percentageFromAth.toFixed(2)}%`;
             layer.bindTooltip(tooltipContent, {sticky: true});
         } else {
             layer.bindTooltip(`${feature.properties.admin}: No data`, {sticky: true});
         }
     }
-}
 
-
-        function fetchCsvData(url) {
-            return d3.csv(url)
-                .then(data => {
-                    const formattedData = {};
-                    data.forEach(row => {
-                        const countryCode = row["Country Code"];
-                        const btcPrice = parseFloat(row["BTC Price"]);
-                        const btcAth = parseFloat(row["BTC ATH"]);
-                        const percentageFromAth = ((btcPrice / btcAth) - 1) * 100;
-                        formattedData[countryCode] = {
-                            percentageFromAth: percentageFromAth,
-                            btcPrice: btcPrice,
-                            btcAth: btcAth
-                        };
-                    });
-                    return formattedData;
-                });
-        }
-
-        const csvUrl = 'https://raw.githubusercontent.com/sorukumar/ChartingExperiment/main/btcath/btcprice.csv';
-        fetchCsvData(csvUrl).then(countryData => {
-            const map = L.map('map', {
-                center: [20, 0],
-                zoom: 2,
-            });
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; OpenStreetMap contributors'
-            }).addTo(map);
-
-            var geojson = L.geoJson(null, {
-                style: function(feature) {
-                    const countryCode = feature.properties.adm0_a3;
-                    const countryInfo = countryData[countryCode];
-                    const value = countryInfo ? countryInfo.percentageFromAth : undefined;
-                    return {
-                        fillColor: getColor(value),
-                        weight: 2,
-                        opacity: 1,
-                        color: 'white',
-                        dashArray: '3',
-                        fillOpacity: 0.7
-                    };
-                },
-                onEachFeature: onEachFeature
-            }).addTo(map);
-
-            fetch('https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_110m_admin_0_countries.geojson')
-                .then(response => response.json())
-                .then(data => {
-                    geojson.addData(data);
-                });
-
-            var legend = L.control({position: 'topright'});
-            legend.onAdd = function (map) {
-                var div = L.DomUtil.create('div', 'info legend'),
-                    grades = [-40, -30, -20, -10, 0, 20],
-                    labels = [];
-                for (var i = 0; i < grades.length; i++) {
-                    labels.push(
-                        '<i style="background:' + getColor(grades[i] + 1) + '"></i> ' +
-                        grades[i] + (grades[i + 1] ? '&ndash;' + grades[i + 1] : '+'));
-                }
-                div.innerHTML = labels.join('<br>');
-                return div;
-            };
-            legend.addTo(map);
+    const csvUrl = 'https://raw.githubusercontent.com/sorukumar/ChartingExperiment/main/btcath/btcprice.csv';
+    fetchCsvData(csvUrl).then(countryData => {
+        const map = L.map('map', {
+            center: [20, 0],
+            zoom: 2,
         });
-    </script>
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        fetch('https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_110m_admin_0_countries.geojson')
+            .then(response => response.json())
+            .then(data => {
+                L.geoJson(data, {
+                    style: function (feature) {
+                        const countryCode = feature.properties.adm0_a3;
+                        const countryInfo = countryData[countryCode];
+                        const value = countryInfo ? countryInfo.percentageFromAth : undefined;
+                        return {
+                            fillColor: getColor(value),
+                            weight: 2,
+                            opacity: 1,
+                            color: 'white',
+                            dashArray: '3',
+                            fillOpacity: 0.7
+                        };
+                    },
+                    onEachFeature: onEachFeature
+                }).addTo(map);
+            });
+
+        var legend = L.control({position: 'topright'});
+        legend.onAdd = function (map) {
+            var div = L.DomUtil.create('div', 'info legend'),
+                grades = [-40, -30, -20, -10, 0, 20],
+                labels = [];
+            for (var i = 0; i < grades.length; i++) {
+                labels.push(
+                    '<i style="background:' + getColor(grades[i] + 1) + '"></i> ' +
+                    grades[i] + (grades[i + 1] ? '&ndash;' + grades[i + 1] : '+'));
+            }
+            div.innerHTML = labels.join('<br>');
+            return div;
+        };
+        legend.addTo(map);
+    });
+
+    function fetchCsvData(url) {
+        return d3.csv(url)
+            .then(data => {
+                const formattedData = {};
+                data.forEach(row => {
+                    const countryCode = row["Country Code"];
+                    const btcPrice = parseFloat(row["BTC Price"]);
+                    const btcAth = parseFloat(row["BTC ATH"]);
+                    const percentageFromAth = ((btcPrice / btcAth) - 1) * 100;
+                    formattedData[countryCode] = {
+                        percentageFromAth: percentageFromAth,
+                        btcPrice: btcPrice,
+                        btcAth: btcAth
+                    };
+                });
+                return formattedData;
+            });
+    }
+</script>
 </body>
 </html>
