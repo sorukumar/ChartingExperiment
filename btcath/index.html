@@ -10,6 +10,9 @@
     <link href="https://cdn.datatables.net/v/bs5/jq-3.7.0/dt-2.0.0/datatables.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"/>
     <style>
+        body {
+        background-color: #FFF8F0; /* Light orange color */
+        }
         #map {
             height: 900px;
             width: 100%;
@@ -48,25 +51,26 @@
     </div>
 </nav>
 
-<div class="header" style="text-align: center; font-size: 24px;">Countries Where BTC Has Hit ATH</div>
+<div class="header" style="text-align: center; font-size: 24px;">Countries where Bitcoin has retouched ATH</div>
 <div id="map"></div>
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 <script src="https://d3js.org/d3.v6.min.js"></script>
 <script src="https://d3js.org/d3-fetch.v1.min.js"></script>
 <script>
+    
     function getColor(percentageFromAth) {
         if (percentageFromAth === undefined || percentageFromAth === null || isNaN(percentageFromAth)) {
             return '#808080'; // Grey color for no value or invalid value
         }
-        return percentageFromAth > 20 ? '#32cd32' :
-            percentageFromAth > 0 ? '#90ee90' :
-            percentageFromAth > -10 ? '#ff4500' :
-            percentageFromAth > -20 ? '#ff8c00' :
-            percentageFromAth > -30 ? '#ffa500' :
-            percentageFromAth > -40 ? '#ffd700' :
-            '#ffffe0';
+        return percentageFromAth > 20 ? '#32cd32' : // Green for values above 20%
+           percentageFromAth > 10 ? '#90ee90' : // Light green for values between 10% to 20%
+           percentageFromAth > 0 ? '#ccffcc' : // Very light green for values between 0% to 10%
+           percentageFromAth > -10 ? '#ffeda0' : // Light orange for values between -10% to 0%
+           percentageFromAth > -20 ? '#feb24c' : // Medium orange for values between -20% to -10%
+           percentageFromAth > -30 ? '#fd8d3c' : // Darker orange for values between -30% to -20%
+           percentageFromAth > -40 ? '#fc4e2a' : // Even darker orange for values between -40% to -30%
+           '#e31a1c'; // Darkest orange (almost red) for values below -40%
     }
-
     function fetchCsvData(url) {
         return d3.csv(url)
             .then(data => {
@@ -86,21 +90,10 @@
             });
     }
     
-    function onEachFeature(feature, layer) {
-        const countryCode = feature.properties.adm0_a3;
-        const countryInfo = countryData[countryCode];
-        if (countryInfo) {
-            const tooltipContent = `<strong>${feature.properties.admin}</strong><br>
-                BTC Price: ${countryInfo.btcPrice.toLocaleString()}<br>
-                BTC ATH: ${countryInfo.btcAth.toLocaleString()}<br>
-                Change: ${countryInfo.percentageFromAth.toFixed(2)}%`;
-            layer.bindTooltip(tooltipContent, {sticky: true});
-        } else {
-            layer.bindTooltip(`${feature.properties.admin}: No data`, {sticky: true});
-        }
-    }
+
 
     const csvUrl = 'https://raw.githubusercontent.com/sorukumar/ChartingExperiment/main/btcath/btcprice.csv';
+
 fetchCsvData(csvUrl).then(countryData => {
     const map = L.map('map', {
         center: [20, 0],
@@ -111,58 +104,118 @@ fetchCsvData(csvUrl).then(countryData => {
         attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
+var geojson; 
+
     // Define the style function outside the fetch call.
-    function style(feature) {
-        const countryCode = feature.properties.adm0_a3;
-        // Use a simplified access to countryData, default to 0 if no data.
-        const value = countryData[countryCode] !== undefined ? countryData[countryCode] : 0;
-        return {
-            fillColor: getColor(value),
-            weight: 2,
-            opacity: 1,
-            color: 'white',
-            dashArray: '3',
-            fillOpacity: 0.7,
-        };
+  function style(feature) {
+    const countryCode = feature.properties.adm0_a3;
+    // Check if there's data for the country and specifically use the percentageFromAth property
+    const countryInfo = countryData[countryCode];
+    // If countryInfo exists, use its percentageFromAth for color; otherwise, default to a value that results in grey
+    const percentageFromAth = countryInfo ? countryInfo.percentageFromAth : null; // Using null to trigger the 'grey' color in getColor
+    
+    return {
+        fillColor: getColor(percentageFromAth), // Now correctly passing the percentage or null
+        weight: 2,
+        opacity: 1,
+        color: 'white',
+        dashArray: '3',
+        fillOpacity: 0.7,
+    };
+}
+
+
+
+    function onEachFeature(feature, layer) {
+                layer.on({
+                    mouseover: highlightFeature,
+                    mouseout: resetHighlight
+                });
+                const countryCode = feature.properties.adm0_a3;
+                 const countryInfo = countryData[countryCode];
+                const tooltipText = countryInfo ?
+               `<strong>${feature.properties.admin}</strong><br>` + // Country name in bold
+        `BTC Price: $${Math.round(countryInfo.btcPrice).toLocaleString()}<br>` + // Rounded BTC Price
+        `BTC ATH: $${Math.round(countryInfo.btcAth).toLocaleString()}<br>` + // Rounded BTC ATH
+        `Change: <span style="color:${countryInfo.percentageFromAth < 0 ? 'red' : 'green'};">${Math.round(countryInfo.percentageFromAth)}%</span>` : // Rounded Change in color-coded percentage
+        `${feature.properties.admin}: No data`; // No data available
+
+                layer.bindTooltip(tooltipText, {
+                    permanent: false, 
+                    direction: 'auto',
+                    sticky: true // Ensuring tooltip follows cursor
+                });
     }
 
-    // Initialize geojson layer with the style function.
+ function highlightFeature(e) {
+                var layer = e.target;
+                layer.setStyle({
+                    weight: 5,
+                    color: '#666',
+                    dashArray: '',
+                    fillOpacity: 0.7
+                });
+                if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+                    layer.bringToFront();
+                }
+            }
+
+            function resetHighlight(e) {
+                geojson.resetStyle(e.target);
+            }
+
+
     var geojson = L.geoJson(null, {
         style: style,
-        onEachFeature: function(feature, layer) {
-            // Define any interactions here, such as mouseover, mouseout, etc.
-            const countryCode = feature.properties.adm0_a3;
-            const tooltipText = `${feature.properties.admin}: ${countryData[countryCode] !== undefined ? countryData[countryCode].toFixed(2) + '%' : 'No data'}`;
-            layer.bindTooltip(tooltipText, {
-                permanent: false,
-                direction: 'auto',
-                sticky: true, // Ensuring tooltip follows cursor.
-            });
-        },
+        onEachFeature: onEachFeature
     }).addTo(map);
 
-    // Fetch and add GeoJSON data to the map.
     fetch('https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_110m_admin_0_countries.geojson')
         .then(response => response.json())
         .then(data => {
             geojson.addData(data);
-        });
+            // Now that the map is fully initialized, add the legend here.
+            var legend = L.control({position: 'topright'});
+legend.onAdd = function (map) {
+    var div = L.DomUtil.create('div', 'info legend'),
+        grades = [-40, -30, -20, -10, 0, 10, 20],
+        labels = [];
+        title = "% difference from ATH";
 
-        var legend = L.control({position: 'topright'});
-    legend.onAdd = function (map) {
-        var div = L.DomUtil.create('div', 'info legend'),
-            grades = [-40, -30, -20, -10, 0, 20],
-            labels = [];
-        for (var i = 0; i < grades.length; i++) {
-            labels.push(
-                '<i style="background:' + getColor(grades[i] + 1) + '"></i> ' +
-                grades[i] + (grades[i + 1] ? '&ndash;' + grades[i + 1] : '+'));
+      labels.push('<div><strong>' + title + '</strong></div>');
+
+    for (var i = 0; i < grades.length; i++) {
+        // Determine the text representation for each range
+        var fromGrade = grades[i] + "%";
+        var toGrade = grades[i + 1] ? grades[i + 1] + "%" : "+";
+
+        // Optional: Use brackets for negative numbers
+        if (grades[i] < 0) {
+            fromGrade = "(" + fromGrade + ")";
         }
-        div.innerHTML = labels.join('<br>');
-        return div;
-    };
-    legend.addTo(map);
+        if (grades[i + 1] && grades[i + 1] < 0) {
+            toGrade = "(" + toGrade + ")";
+        }
+
+        // Construct the label with optional color change for negative numbers
+        var label = '<i style="background:' + getColor(grades[i] + 1) + '"></i> ';
+
+        // Apply different styling for negative ranges if desired
+        if (grades[i] < 0) {
+            label += '<span style="color: red;">' + fromGrade + (grades[i + 1] ? ' to ' + toGrade : '') + '</span>';
+        } else {
+            label += fromGrade + (grades[i + 1] ? ' to ' + toGrade : '');
+        }
+
+        labels.push(label);
+    }
+    div.innerHTML = labels.join('<br>');
+    return div;
+};
+legend.addTo(map);
+        });
 });
+
 
 </script>
 </body>
