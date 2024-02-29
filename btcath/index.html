@@ -7,11 +7,11 @@
     <meta name="description" content="Making Bitcoin Beautiful One Chart a Time.">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.datatables.net/v/bs5/jq-3.7.0/dt-2.0.0/datatables.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/1.11.3/css/jquery.dataTables.css" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"/>
     <style>
         body {
-        background-color: #FFF8F0; /* Light orange color */
+            background-color: #FFF8F0; /* Light orange color */
         }
         #map {
             height: 900px;
@@ -51,8 +51,12 @@
     </div>
 </nav>
 
-<div class="header" style="text-align: center; font-size: 24px;">Countries where Bitcoin has retouched ATH</div>
+<div class="header" style="text-align: center; font-size: 24px;">Current Bitcoin Price vs ATH by country</div>
 <div id="map"></div>
+<div id="athCountriesList"></div>
+
+<script src="https://code.jquery.com/jquery-3.5.1.js"></script>
+<script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.js"></script>
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 <script src="https://d3js.org/d3.v6.min.js"></script>
 <script src="https://d3js.org/d3-fetch.v1.min.js"></script>
@@ -71,21 +75,36 @@
            percentageFromAth > -40 ? '#fc4e2a' : // Even darker orange for values between -40% to -30%
            '#e31a1c'; // Darkest orange (almost red) for values below -40%
     }
+
     function fetchCsvData(url) {
         return d3.csv(url)
             .then(data => {
                 const formattedData = {};
+                let countriesTouchedATHList = ""; // Initialize an empty string for countries
+                let count = 0; // Initialize counter for countries
+                
                 data.forEach(row => {
                     const countryCode = row["Country Code"];
                     const btcPrice = parseFloat(row["BTC Price"]);
                     const btcAth = parseFloat(row["BTC ATH"]);
+                    const retouched_ath = row["Retouched-YN"];
                     const percentageFromAth = ((btcPrice / btcAth) - 1) * 100;
+                    
+                    if(percentageFromAth > 0 ) {
+                        countriesTouchedATHList += `<li>${countryCode}</li>`; // Append country code to the list
+                        count++; // Increment the counter
+                    }
+                    
                     formattedData[countryCode] = {
                         percentageFromAth: percentageFromAth,
                         btcPrice: btcPrice,
                         btcAth: btcAth
-                    };
+                                            };
                 });
+                
+                // Display the count and list of countries
+                document.getElementById("athCountriesList").innerHTML = `<h4>Countries where Bitcoin price is higher than ATH: ${count}</h4><ul>${countriesTouchedATHList}</ul>`;
+                
                 return formattedData;
             });
     }
@@ -137,6 +156,7 @@ var geojson;
                `<strong>${feature.properties.admin}</strong><br>` + // Country name in bold
         `BTC Price: $${Math.round(countryInfo.btcPrice).toLocaleString()}<br>` + // Rounded BTC Price
         `BTC ATH: $${Math.round(countryInfo.btcAth).toLocaleString()}<br>` + // Rounded BTC ATH
+
         `Change: <span style="color:${countryInfo.percentageFromAth < 0 ? 'red' : 'green'};">${Math.round(countryInfo.percentageFromAth)}%</span>` : // Rounded Change in color-coded percentage
         `${feature.properties.admin}: No data`; // No data available
 
