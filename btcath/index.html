@@ -154,8 +154,8 @@ var geojson;
                  const countryInfo = countryData[countryCode];
                 const tooltipText = countryInfo ?
                `<strong>${feature.properties.admin}</strong><br>` + // Country name in bold
-        `BTC Price: $${Math.round(countryInfo.btcPrice).toLocaleString()}<br>` + // Rounded BTC Price
-        `BTC ATH: $${Math.round(countryInfo.btcAth).toLocaleString()}<br>` + // Rounded BTC ATH
+        `BTC Price: ${Math.round(countryInfo.btcPrice).toLocaleString()}<br>` + // Rounded BTC Price
+        `BTC ATH: ${Math.round(countryInfo.btcAth).toLocaleString()}<br>` + // Rounded BTC ATH
 
         `Change: <span style="color:${countryInfo.percentageFromAth < 0 ? 'red' : 'green'};">${Math.round(countryInfo.percentageFromAth)}%</span>` : // Rounded Change in color-coded percentage
         `${feature.properties.admin}: No data`; // No data available
