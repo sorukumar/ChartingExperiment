@@ -66,15 +66,14 @@
         if (percentageFromAth === undefined || percentageFromAth === null || isNaN(percentageFromAth)) {
             return '#808080'; // Grey color for no value or invalid value
         }
-        return percentageFromAth > 20 ? '#32cd32' : // Green for values above 20%
-           percentageFromAth > 10 ? '#90ee90' : // Light green for values between 10% to 20%
-           percentageFromAth > 0 ? '#ccffcc' : // Very light green for values between 0% to 10%
-           percentageFromAth > -10 ? '#ffeda0' : // Light orange for values between -10% to 0%
-           percentageFromAth > -20 ? '#feb24c' : // Medium orange for values between -20% to -10%
-           percentageFromAth > -30 ? '#fd8d3c' : // Darker orange for values between -30% to -20%
-           percentageFromAth > -40 ? '#fc4e2a' : // Even darker orange for values between -40% to -30%
-           '#e31a1c'; // Darkest orange (almost red) for values below -40%
-    }
+        return percentageFromAth > 50 ? '#006400' : // DarkGreen for values above 50%
+           percentageFromAth > 30 ? '#228B22' : // ForestGreen for values between 30% to 50%
+           percentageFromAth > 10 ? '#32CD32' : // LimeGreen for values between 10% to 30%
+           percentageFromAth > 0 ? '#90EE90' : // LightGreen for values between 0% to 10%
+           percentageFromAth > -10 ? '#FFCCCC' : // Yellow for values between -10% to 0%
+           percentageFromAth > -30 ? '#FF4500' : // OrangeRed for values between -30% to -10%
+           '#8B0000'; // DarkRed for values below -30%
+}
 
     function fetchCsvData(url) {
         return d3.csv(url)
@@ -198,42 +197,30 @@ var geojson;
             var legend = L.control({position: 'topright'});
 legend.onAdd = function (map) {
     var div = L.DomUtil.create('div', 'info legend'),
-        grades = [-40, -30, -20, -10, 0, 10, 20],
-        labels = [];
+        // Updated grades to match color logic breakpoints
+        grades = [-30, -10, 0, 10, 30, 50],
+        labels = [],
         title = "% difference from ATH";
 
-      labels.push('<div><strong>' + title + '</strong></div>');
+    labels.push('<div><strong>' + title + '</strong></div>');
 
     for (var i = 0; i < grades.length; i++) {
-        // Determine the text representation for each range
         var fromGrade = grades[i] + "%";
         var toGrade = grades[i + 1] ? grades[i + 1] + "%" : "+";
+        
+        // Remove the conditional brackets for simplicity and consistency
+        // Determine the label text for the range
+        var rangeText = fromGrade + (grades[i + 1] ? ' to ' + toGrade : '+');
 
-        // Optional: Use brackets for negative numbers
-        if (grades[i] < 0) {
-            fromGrade = "(" + fromGrade + ")";
-        }
-        if (grades[i + 1] && grades[i + 1] < 0) {
-            toGrade = "(" + toGrade + ")";
-        }
+        // Adjust the label color logic if needed
+        var labelColor = getColor(grades[i] + 1); // Ensure this function call aligns with updated color logic
 
-        // Construct the label with optional color change for negative numbers
-        var label = '<i style="background:' + getColor(grades[i] + 1) + '"></i> ';
-
-        // Apply different styling for negative ranges if desired
-        if (grades[i] < 0) {
-            label += '<span style="color: red;">' + fromGrade + (grades[i + 1] ? ' to ' + toGrade : '') + '</span>';
-        } else {
-            label += fromGrade + (grades[i + 1] ? ' to ' + toGrade : '');
-        }
-
-        labels.push(label);
+        labels.push('<i style="background:' + labelColor + '"></i> ' + rangeText);
     }
     div.innerHTML = labels.join('<br>');
     return div;
 };
-legend.addTo(map);
-        });
+legend.addTo(map);        });
 });
 
 
