@@ -1,1 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>BTC ATH World Map</title>
+    <meta name="author" content="sorukumar">
+    <meta name="description" content="Making Bitcoin Beautiful One Chart a Time.">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/1.11.3/css/jquery.dataTables.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"/>
+    <style>
+        body {
+            background-color: #FFF8F0; /* Light orange color */
+        }
+        #map {
+            height: 900px;
+            width: 100%;
+        }
+        .legend {
+            background-color: #fff;
+            padding: 10px;
+            font-size: 14px;
+            font-family: Arial, sans-serif;
+        }
+        .legend i {
+            width: 18px;
+            height: 18px;
+            float: left;
+            margin-right: 8px;
+            opacity: 0.7;
+        }
+        .info {
+            padding: 6px 8px;
+            background: white;
+            background: rgba(255,255,255,0.8);
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+<nav class="navbar bg-body-tertiary">
+    <div class="container">
+        <h1 class="navbar-brand mb-0">
+            <img src="https://avatars.githubusercontent.com/u/113713822?s=200" alt="Logo" width="24" height="24"
+                 class="d-inline-block align-text-top">
+            Bitcoin is Beautiful
+        </h1>
+        <a class="nav-link" href="https://github.com/sorukumar/ChartingExperiment/btcath">Github</a>
+    </div>
+</nav>
 
+<div class="header" style="text-align: center; font-size: 24px;">Current Bitcoin Price vs Inflation adjusted(IMF data) 2021 ATH  by country</div>
+<div id="map"></div>
+
+
+<script src="https://code.jquery.com/jquery-3.5.1.js"></script>
+<script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.js"></script>
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+<script src="https://d3js.org/d3.v6.min.js"></script>
+<script src="https://d3js.org/d3-fetch.v1.min.js"></script>
+<script>
+    
+    function getColor(percentageFromInfAdj) {
+        if (percentageFromInfAdj === undefined || percentageFromInfAdj === null || isNaN(percentageFromInfAdj)) {
+            return '#808080'; // Grey color for no value or invalid value
+        }
+        return percentageFromInfAdj > 50 ? '#006400' : // DarkGreen for values above 50%
+           percentageFromInfAdj > 30 ? '#228B22' : // ForestGreen for values between 30% to 50%
+           percentageFromInfAdj > 10 ? '#32CD32' : // LimeGreen for values between 10% to 30%
+           percentageFromInfAdj > 0 ? '#90EE90' : // LightGreen for values between 0% to 10%
+           percentageFromInfAdj > -10 ? '#FFCCCC' : // Yellow for values between -10% to 0%
+           percentageFromInfAdj > -30 ? '#FF4500' : // OrangeRed for values between -30% to -10%
+           '#8B0000'; // DarkRed for values below -30%
+}
+
+    function fetchCsvData(url) {
+        return d3.csv(url)
+            .then(data => {
+                const formattedData = {};
+                let countriesTouchedATHList = ""; // Initialize an empty string for countries
+                let count = 0; // Initialize counter for countries
+                
+                data.forEach(row => {
+                    const countryCode = row["Country Code"];
+                    const btcPrice = parseFloat(row["BTC Price"]);
+                    const btcAth = parseFloat(row["BTC ATH"]);
+                    const retouched_ath = row["Retouched-YN"];
+                    const AnnInf = row["Annual Inflation (21,22,23,24)"];
+                    const effInf = parseFloat(row["Effective Inflation Rate from Nov 2021 to Mar 2024"]);
+                    const btcAthInfAdj = parseFloat(row["BTC ATH Inflation Adjusted"]);
+                    const percentageFromAth = ((btcPrice / btcAth) - 1) * 100;
+                    const percentageFromInfAdj = ((btcPrice / btcAthInfAdj) - 1) * 100;
+
+                    
+                    if(percentageFromInfAdj > 0 ) {
+                        countriesTouchedATHList += `<li>${countryCode}</li>`; // Append country code to the list
+                        count++; // Increment the counter
+                    }
+                    
+                    formattedData[countryCode] = {
+                        percentageFromAth: percentageFromAth,
+                        btcPrice: btcPrice,
+                        btcAth: btcAth,
+                        percentageFromInfAdj: percentageFromInfAdj,
+                        btcAthInfAdj: btcAthInfAdj,
+                        effInf: effInf,
+                        AnnInf: AnnInf
+                                            };
+                });
+                
+                // Display the count and list of countries
+                // document.getElementById("athCountriesList").innerHTML = `<h4>Countries where Bitcoin price is higher than ATH: ${count}</h4><ul>${countriesTouchedATHList}</ul>`;
+                
+                return formattedData;
+            });
+    }
+    
+
+
+    const csvUrl = 'https://raw.githubusercontent.com/sorukumar/ChartingExperiment/main/btcath/btcprice.csv';
+
+fetchCsvData(csvUrl).then(countryData => {
+    const map = L.map('map', {
+        center: [20, 0],
+        zoom: 2,
+    });
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+var geojson; 
+
+    // Define the style function outside the fetch call.
+  function style(feature) {
+    const countryCode = feature.properties.adm0_a3;
+    // Check if there's data for the country and specifically use the percentageFromInfAdj property
+    const countryInfo = countryData[countryCode];
+    // If countryInfo exists, use its percentageFromInfAdj for color; otherwise, default to a value that results in grey
+    const percentageFromInfAdj = countryInfo ? countryInfo.percentageFromInfAdj : null; // Using null to trigger the 'grey' color in getColor
+    
+    return {
+        fillColor: getColor(percentageFromInfAdj), // Now correctly passing the percentage or null
+        weight: 2,
+        opacity: 1,
+        color: 'white',
+        dashArray: '3',
+        fillOpacity: 0.7,
+    };
+}
+
+
+
+    function onEachFeature(feature, layer) {
+                layer.on({
+                    mouseover: highlightFeature,
+                    mouseout: resetHighlight
+                });
+                const countryCode = feature.properties.adm0_a3;
+                 const countryInfo = countryData[countryCode];
+                const tooltipText = countryInfo ?
+               `<strong>${feature.properties.admin}</strong><br>` + // Country name in bold
+        `BTC Price: ${Math.round(countryInfo.btcPrice).toLocaleString()}<br>` + // Rounded BTC Price
+        `BTC ATH: ${Math.round(countryInfo.btcAth).toLocaleString()}<br>` + // Rounded BTC ATH
+        `BTC ATH Inflation Adjusted: ${Math.round(countryInfo.btcAthInfAdj).toLocaleString()}<br>` + 
+        `Effective Inflation rate: ${Math.round(countryInfo.effInf)}%<br>` + 
+        `Annual Inflation rate: ${countryInfo.AnnInf}<br>` + 
+        `Change vs Inflation Adjusted: <span style="color:${countryInfo.percentageFromInfAdj < 0 ? 'red' : 'green'};">${Math.round(countryInfo.percentageFromInfAdj)}%</span>`  : // Rounded Change in color-coded percentage
+        `${feature.properties.admin}: No data`; // No data available
+
+                layer.bindTooltip(tooltipText, {
+                    permanent: false, 
+                    direction: 'auto',
+                    sticky: true // Ensuring tooltip follows cursor
+                });
+    }
+
+ function highlightFeature(e) {
+                var layer = e.target;
+                layer.setStyle({
+                    weight: 5,
+                    color: '#666',
+                    dashArray: '',
+                    fillOpacity: 0.7
+                });
+                if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+                    layer.bringToFront();
+                }
+            }
+
+            function resetHighlight(e) {
+                geojson.resetStyle(e.target);
+            }
+
+
+    var geojson = L.geoJson(null, {
+        style: style,
+        onEachFeature: onEachFeature
+    }).addTo(map);
+
+    fetch('https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_110m_admin_0_countries.geojson')
+        .then(response => response.json())
+        .then(data => {
+            geojson.addData(data);
+            // Now that the map is fully initialized, add the legend here.
+            var legend = L.control({position: 'topright'});
+legend.onAdd = function (map) {
+    var div = L.DomUtil.create('div', 'info legend'),
+        // Updated grades to match color logic breakpoints
+        grades = [-30, -10, 0, 10, 30, 50],
+        labels = [],
+        title = "% difference from ATH";
+
+    labels.push('<div><strong>' + title + '</strong></div>');
+
+    for (var i = 0; i < grades.length; i++) {
+        var fromGrade = grades[i] + "%";
+        var toGrade = grades[i + 1] ? grades[i + 1] + "%" : "+";
+        
+        // Remove the conditional brackets for simplicity and consistency
+        // Determine the label text for the range
+        var rangeText = fromGrade + (grades[i + 1] ? ' to ' + toGrade : '+');
+
+        // Adjust the label color logic if needed
+        var labelColor = getColor(grades[i] + 1); // Ensure this function call aligns with updated color logic
+
+        labels.push('<i style="background:' + labelColor + '"></i> ' + rangeText);
+    }
+    div.innerHTML = labels.join('<br>');
+    return div;
+};
+legend.addTo(map);        });
+});
+
+
+</script>
+</body>
+</html>
