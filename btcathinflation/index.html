@@ -66,13 +66,13 @@
         if (percentageFromInfAdj === undefined || percentageFromInfAdj === null || isNaN(percentageFromInfAdj)) {
             return '#808080'; // Grey color for no value or invalid value
         }
-        return percentageFromInfAdj > 50 ? '#006400' : // DarkGreen for values above 50%
-           percentageFromInfAdj > 30 ? '#228B22' : // ForestGreen for values between 30% to 50%
-           percentageFromInfAdj > 10 ? '#32CD32' : // LimeGreen for values between 10% to 30%
-           percentageFromInfAdj > 0 ? '#90EE90' : // LightGreen for values between 0% to 10%
-           percentageFromInfAdj > -10 ? '#FFCCCC' : // Yellow for values between -10% to 0%
-           percentageFromInfAdj > -30 ? '#FF4500' : // OrangeRed for values between -30% to -10%
-           '#8B0000'; // DarkRed for values below -30%
+         if (percentageFromInfAdj > 50) return '#006400'; // DarkGreen for values above 50%
+        if (percentageFromInfAdj > 30) return '#228B22'; // ForestGreen for values between 30% to 50%
+        if (percentageFromInfAdj > 10) return '#32CD32'; // LimeGreen for values between 10% to 30%
+        if (percentageFromInfAdj > 0) return '#90EE90'; // LightGreen for values between 0% to 10%
+        if (percentageFromInfAdj > -10) return '#FFCCCC'; // LightRed for values between -10% to 0%
+        if (percentageFromInfAdj > -30) return '#FF4500'; // OrangeRed for values between -30% to -10%
+            return '#8B0000'; // DarkRed for values below -30%
 }
 
     function fetchCsvData(url) {
@@ -162,12 +162,12 @@ var geojson;
                  const countryInfo = countryData[countryCode];
                 const tooltipText = countryInfo ?
                `<strong>${feature.properties.admin}</strong><br>` + // Country name in bold
-        `BTC Price: ${Math.round(countryInfo.btcPrice).toLocaleString()}<br>` + // Rounded BTC Price
-        `BTC ATH: ${Math.round(countryInfo.btcAth).toLocaleString()}<br>` + // Rounded BTC ATH
-        `BTC ATH Inflation Adjusted: ${Math.round(countryInfo.btcAthInfAdj).toLocaleString()}<br>` + 
-        `Effective Inflation rate: ${Math.round(countryInfo.effInf)}%<br>` + 
-        `Annual Inflation rate: ${countryInfo.AnnInf}<br>` + 
-        `Change vs Inflation Adjusted: <span style="color:${countryInfo.percentageFromInfAdj < 0 ? 'red' : 'green'};">${Math.round(countryInfo.percentageFromInfAdj)}%</span>`  : // Rounded Change in color-coded percentage
+        `Current BTC Price: ${Math.round(countryInfo.btcPrice).toLocaleString()}<br>` + // Rounded BTC Price
+        `BTC ATH (2021): ${Math.round(countryInfo.btcAth).toLocaleString()}<br>` + // Rounded BTC ATH
+        `Inflation Adjusted BTC ATH (2021): ${Math.round(countryInfo.btcAthInfAdj).toLocaleString()}<br>` + 
+        `Effective Inflation rate (Nov-21 to Mar-24): ${Math.round(countryInfo.effInf)}%<br>` + 
+        `Annual Inflation rate(2021,2022,2023,2024): ${countryInfo.AnnInf}<br>` + 
+        `% Difference Inflation Adjusted BTC high 2021 vs current price: <span style="color:${countryInfo.percentageFromInfAdj < 0 ? 'red' : 'green'};">${Math.round(countryInfo.percentageFromInfAdj)}%</span>`  : // Rounded Change in color-coded percentage
         `${feature.properties.admin}: No data`; // No data available
 
                 layer.bindTooltip(tooltipText, {
@@ -209,9 +209,9 @@ var geojson;
 legend.onAdd = function (map) {
     var div = L.DomUtil.create('div', 'info legend'),
         // Updated grades to match color logic breakpoints
-        grades = [-30, -10, 0, 10, 30, 50],
+        grades = [-100, -30, -10, 0, 10, 30, 50],
         labels = [],
-        title = "% difference from ATH";
+        title = "% Difference from inflation adjusted ATH 2021";
 
     labels.push('<div><strong>' + title + '</strong></div>');
 
