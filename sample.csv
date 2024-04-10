@@ -1,0 +1,4 @@
+pub_key,alias,# of channel,Capacity,Channel percentile,Capacity percentile,base fee,fee rate,fee percentile
+pub_key_1,alias_1,10,1000000,80%,70%,100,0.001,60%
+pub_key_2,alias_2,5,500000,60%,50%,50,0.0005,40%
+pub_key_3,alias_3,15,1500000,90%,80%,200,0.002,70%
